@@ -1,0 +1,11 @@
+{
+  "require": {
+    "php": "^8.3.0",
+    "bref/bref": "^2.3"
+  },
+  "autoload": {
+    "psr-4": {
+      "Battlesnake\\": "src/"
+    }
+  }
+}

@@ -1,0 +1,43 @@
+service: app
+
+provider:
+    name: aws
+    region: us-east-1
+    stage: prod
+    apiGateway:
+        usagePlan:
+            quota:
+                limit: 100000
+                period: DAY
+            throttle:
+                burstLimit: 50
+                rateLimit: 30
+
+plugins:
+    - ./vendor/bref/bref
+
+functions:
+    battlesnake:
+        handler: index.php
+        description: 'Battlesnake API'
+        runtime: php-83-fpm
+        timeout: 28 # in seconds (API Gateway has a timeout of 29 seconds)
+        events:
+            -  http:
+                    path: start
+                    method: post
+            -  http:
+                    path: move
+                    method: post
+            -  http:
+                    path: end
+                    method: post
+            -  http:
+                    path: /
+                    method: get
+
+# Exclude files from deployment
+package:
+    patterns:
+        - '!node_modules/**'
+        - '!tests/**'
