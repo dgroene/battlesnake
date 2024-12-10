@@ -26,7 +26,13 @@ class BoxingInMoveManager extends BaseMoveManager
                 $current_accessible_squares = $this->calculateAccessibleSquares($snake['head'], $this->gameData);
                 $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
                 $new_game_data = $this->gameData->getNextMoveGameData($move);
-                $new_accessible_squares = $this->calculateAccessibleSquares($new_head, $new_game_data);
+                $new_snake_head = $new_game_data->getSnakeHead($snakeId);
+                if (empty($new_snake_head)) {
+                    $new_accessible_squares = 0;
+                }
+                else {
+                    $new_accessible_squares = $this->calculateAccessibleSquares($new_snake_head, $new_game_data);
+                }
                 $boxyTotal += $current_accessible_squares - $new_accessible_squares;
             }
             if ($boxyTotal > $boxiestTotal) {

@@ -118,17 +118,27 @@ class GameData {
             }
         }
 
+        $dead_snakes = [];
         for ($i = 0; $i < count($newGameData['board']['snakes']); $i++) {
             if ($my_id == $newGameData['board']['snakes'][$i]['id']) {
                 continue;
             }
             $snake = $newGameData['board']['snakes'][$i];
             $moves = $ImpossibleMoveManager->getMoves($snake['id']);
-            $move = !empty($moves) ? $moves[array_rand($moves)] : MoveDirections::UP;
+            if (empty($moves)) {
+                $dead_snakes[] = $snake['id'];
+                continue;
+            }
+            $move = $moves[array_rand($moves)];
             $new_head = $ImpossibleMoveManager->getNewHead($snake['head'], $move);
             $new_body = $this->getNextMoveBody($snake['body'], $new_head);
             $newGameData['board']['snakes'][$i]['head'] = $new_head;
             $newGameData['board']['snakes'][$i]['body'] = $new_body;
+        }
+        foreach ($dead_snakes as $dead_snake) {
+            $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snake) {
+                return $snake['id'] != $dead_snake;
+            });
         }
         return new self($newGameData);
     }
