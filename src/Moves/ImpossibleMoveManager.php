@@ -29,7 +29,9 @@ class ImpossibleMoveManager extends BaseMoveManager {
                 if ($snake['id'] == $snakeId) {
                     continue;
                 }
-                if (in_array($new_head, $this->gameData->getSnakeBody($snake['id']))) {
+                $other_snake_body = $this->gameData->getSnakeBody($snake['id']);
+                array_pop($other_snake_body);
+                if (in_array($new_head, $other_snake_body)) {
                     return false;
                 }
             }

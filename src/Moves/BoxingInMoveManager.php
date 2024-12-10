@@ -3,6 +3,7 @@
 namespace Battlesnake\Moves;
 
 use Battlesnake\Enums\MoveDirections;
+use Battlesnake\Game\GameData;
 
 class BoxingInMoveManager extends BaseMoveManager
 {
@@ -13,55 +14,103 @@ class BoxingInMoveManager extends BaseMoveManager
             $snakeId = $this->gameData->getYou()['id'];
         }
         $possibleMoves = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
-        $BoxingInMoves = array_filter($possibleMoves, function ($move) use ($snakeId) {
-            $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
-            $nearest_snake = [];
-            $nearest_snake_distance = 1000000;
-            foreach ($this->gameData->getSnakes() as $snake) {
-                if ($snake['id'] == $snakeId || $this->gameData->getSnakeLength($snake['id']) >= $this->gameData->getSnakeLength($snakeId)) {
+        $boxiestMove = [];
+        $boxiestTotal = 0;
+        foreach ($possibleMoves as $move) {
+            $snakes = $this->gameData->getSnakes();
+            $snakes = array_filter($snakes, function($snake) use ($snakeId){
+                return $snake['id'] != $snakeId;
+            });
+            $boxyTotal = 0;
+            foreach ($snakes as $snake) {
+                $current_accessible_squares = $this->calculateAccessibleSquares($snake['head'], $this->gameData);
+                $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
+                $new_game_data = $this->gameData->getNextMoveGameData($move);
+                $new_accessible_squares = $this->calculateAccessibleSquares($new_head, $new_game_data);
+                $boxyTotal += $current_accessible_squares - $new_accessible_squares;
+            }
+            if ($boxyTotal > $boxiestTotal) {
+                $boxiestTotal = $boxyTotal;
+                $boxiestMove = [$move];
+            } elseif ($boxyTotal == $boxiestTotal) {
+                $boxiestMove[] = $move;
+            }
+        }
+        return $boxiestMove;
+    }
+
+    public function calculateAccessibleSquares(array $head, GameData $gameData): int {
+        $directions = [
+            MoveDirections::UP,
+            MoveDirections::DOWN,
+            MoveDirections::LEFT,
+            MoveDirections::RIGHT
+        ];
+
+        $maxDepth = 10; // Number of moves to look ahead
+        $width = $gameData->getBoardWidth();   // e.g. 11
+        $height = $gameData->getBoardHeight(); // e.g. 11
+
+        // Visited array to avoid revisiting cells
+        // Using a boolean array keyed by "x,y"
+        $visited = [];
+        $startKey = "{$head['x']},{$head['y']}";
+        $visited[$startKey] = true;
+
+        // Queue holds entries like [x, y, depth]
+        $queue = [[$head['x'], $head['y'], 0]];
+
+        // Count accessible squares
+        // Decide whether to count the starting square as accessible
+        // Usually you would, since it's where the snake's head currently is.
+        $accessible_squares = 1;
+
+        while (!empty($queue)) {
+            list($x, $y, $depth) = array_shift($queue);
+
+            // If we've reached max depth, do not expand further
+            if ($depth >= $maxDepth) {
+                continue;
+            }
+
+            // Explore neighbors
+            foreach ($directions as $dir) {
+                if ($dir == MoveDirections::UP) {
+                    $nh = ['x' => 0, 'y' => -1];
+                } elseif ($dir == MoveDirections::DOWN) {
+                    $nh = ['x' => 0, 'y' => 1];
+                } elseif ($dir == MoveDirections::LEFT) {
+                    $nh = ['x' => -1, 'y' => 0];
+                } elseif ($dir == MoveDirections::RIGHT) {
+                    $nh = ['x' => 1, 'y' => 0];
+                }
+                $nx = $x + $nh['x'];
+                $ny = $y + $nh['y'];
+                $key = "$nx,$ny";
+
+                // Check board boundaries
+                if ($nx < 0 || $nx >= $width || $ny < 0 || $ny >= $height) {
                     continue;
                 }
-                $distance = abs($snake['head']['x'] - $new_head['x']) + abs($snake['head']['y'] - $new_head['y']);
-                if ($distance < $nearest_snake_distance) {
-                    $nearest_snake_distance = $distance;
-                    $nearest_snake = $snake;
+
+                // Check if this cell is safe (not a snake body, not blocked)
+                if (!$gameData->isCellSafe($nx, $ny)) {
+                    continue;
                 }
+
+                // Check if visited
+                if (isset($visited[$key])) {
+                    continue;
+                }
+
+                // Mark visited and add to the queue
+                $visited[$key] = true;
+                $accessible_squares++;
+                $queue[] = [$nx, $ny, $depth + 1];
             }
-            if (!empty($nearest_snake)) {
-                $goal_square = [];
-                $nearest_snake_head = $nearest_snake['head'];
-                $one_third_width = floor($this->gameData->getBoardWidth() / 3);
-                $one_third_height = floor($this->gameData->getBoardHeight() / 3);
-                if ($nearest_snake_head['x'] <= $one_third_width) {
-                    $goal_square = ['x' => $nearest_snake_head['x'] + 1, 'y' => $nearest_snake_head['y']];
-                }
-                if ($nearest_snake_head['x'] >= $this->gameData->getBoardWidth() - $one_third_width) {
-                    $goal_square = ['x' => $nearest_snake_head['x'] - 1, 'y' => $nearest_snake_head['y']];
-                }
-                if ($nearest_snake_head['y'] <= $one_third_height) {
-                    $goal_square = ['x' => $nearest_snake_head['x'], 'y' => $nearest_snake_head['y'] + 1];
-                }
-                if ($nearest_snake_head['y'] >= $this->gameData->getBoardHeight() - $one_third_height) {
-                    $goal_square = ['x' => $nearest_snake_head['x'], 'y' => $nearest_snake_head['y'] - 1];
-                }
-                // Select possible moves that go towards goal.
-                if ($goal_square['x'] >= $new_head['x'] && $move == MoveDirections::RIGHT) {
-                    return true;
-                }
-                if ($goal_square['x'] <= $new_head['x'] && $move == MoveDirections::LEFT) {
-                    return true;
-                }
-                if ($goal_square['y'] >= $new_head['y'] && $move == MoveDirections::UP) {
-                    return true;
-                }
-                if ($goal_square['y'] <= $new_head['y'] && $move == MoveDirections::DOWN) {
-                    return true;
-                }
-                return false;
-            }
-            return false;
-        });
-        return $BoxingInMoves;
+        }
+
+        return $accessible_squares;
     }
 
 }
