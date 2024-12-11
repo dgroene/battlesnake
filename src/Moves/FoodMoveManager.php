@@ -16,6 +16,13 @@ class FoodMoveManager extends BaseMoveManager
         $foodMoves = array_filter($foodMoves, function ($move) use ($snakeId) {
             $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
             $food = $this->gameData->getFood();
+            $food = array_filter($food, function ($food_item) {
+                if ($food_item['x'] == 0 || $food_item['x'] == $this->gameData->getBoardWidth() - 1
+                    || $food_item['y'] == 0 || $food_item['y'] == $this->gameData->getBoardHeight() - 1) {
+                    return false;
+                }
+                return true;
+            });
             $min_food_distance = 1000000;
             $min_food = [];
             foreach ($food as $food_item) {
@@ -24,6 +31,24 @@ class FoodMoveManager extends BaseMoveManager
                     $min_food_distance = $food_distance;
                     $min_food = $food_item;
                 }
+            }
+            if (empty($min_food) && !empty($food)) {
+                // Find a target area where food is clustered.
+                $xcoordinates = array_column($food, 'x');
+                $ycoordinates = array_column($food, 'y');
+                sort($xcoordinates);
+                sort($ycoordinates);
+                $count = count($food);
+                if ($count % 2 == 1) {
+                    $medianX = $xcoordinates[floor($count / 2)];
+                    $medianY = $ycoordinates[floor($count / 2)];
+                }
+                else {
+                    $mid = $count / 2;
+                    $medianX = ($xcoordinates[$mid - 1] + $xcoordinates[$mid]) / 2;
+                    $medianY = ($ycoordinates[$mid - 1] + $ycoordinates[$mid]) / 2;
+                }
+                $min_food = ['x' => $medianX, 'y' => $medianY];
             }
             if (!empty($min_food)) {
                 if ($min_food['x'] >= $new_head['x'] && $move == MoveDirections::RIGHT) {
