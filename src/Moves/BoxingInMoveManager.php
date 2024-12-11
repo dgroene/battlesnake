@@ -33,7 +33,7 @@ class BoxingInMoveManager extends BaseMoveManager
                 else {
                     $new_accessible_squares = $this->calculateAccessibleSquares($new_snake_head, $new_game_data);
                 }
-                $boxyTotal += $current_accessible_squares - $new_accessible_squares;
+                $boxyTotal += ($current_accessible_squares - $new_accessible_squares);
             }
             if ($boxyTotal > $boxiestTotal) {
                 $boxiestTotal = $boxyTotal;
@@ -95,7 +95,7 @@ class BoxingInMoveManager extends BaseMoveManager
                 $key = "$nx,$ny";
 
                 // Check board boundaries
-                if ($nx < 0 || $nx >= $width || $ny < 0 || $ny >= $height) {
+                if ($nx <= 0 || $nx >= $width || $ny <= 0 || $ny >= $height) {
                     continue;
                 }
 

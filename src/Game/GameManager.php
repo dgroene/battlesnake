@@ -12,6 +12,7 @@ use Battlesnake\Moves\ScaredyCatMoveManager;
 class GameManager {
 
     private GameData $gameData;
+    const int MAX_DEPTH = 15;
 
     public function __construct(protected array $data) {
         $this->gameData = new GameData($data);
@@ -33,18 +34,20 @@ class GameManager {
         $edgeAvoiding_moves = $edgeAvoidingMoveManager->getMoves();
         $boxingInMoveManager = new BoxingInMoveManager($this->gameData);
         $boxingIn_moves = $boxingInMoveManager->getMoves();
+        $health = $this->gameData->getYou()['health'];
         if (count(array_intersect($possibleMove, $scaredyCat_moves)) > 0) {
             $possibleMove = array_intersect($possibleMove, $scaredyCat_moves);
         }
         if (count(array_intersect($possibleMove, $food_moves)) > 0) {
             $possibleMove = array_intersect($possibleMove, $food_moves);
         }
-        if (count(array_intersect($possibleMove, $boxingIn_moves)) > 0) {
-            $possibleMove = array_intersect($possibleMove, $boxingIn_moves);
-        }
         if (count(array_intersect($possibleMove, $edgeAvoiding_moves)) > 0) {
             $possibleMove = array_intersect($possibleMove, $edgeAvoiding_moves);
         }
+        if (count(array_intersect($possibleMove, $boxingIn_moves)) > 0) {
+            $possibleMove = array_intersect($possibleMove, $boxingIn_moves);
+        }
+
         return $possibleMove;
     }
 
@@ -55,19 +58,62 @@ class GameManager {
             $possibleMove = $survivable_moves;
         }
         $possibleMove = $this->getPreferred($possibleMove);
+        if (count($possibleMove) > 0) {
+            $possibleMove = $this->maximizeDeadSnakes($possibleMove);
+        }
 
         return !empty($possibleMove) ? $possibleMove[array_rand($possibleMove)] : MoveDirections::UP;
+    }
+
+    public function maximizeDeadSnakes(array $possibleMove): array {
+        $maxDeadSnakes = 0;
+        $maxDeadSnakesMove = [];
+        foreach ($possibleMove as $move) {
+            $newGameData = $this->gameData->getNextMoveGameData($move);
+            $deadSnakes = $this->redrum($newGameData, self::MAX_DEPTH, 0);
+            if ($deadSnakes > $maxDeadSnakes) {
+                $maxDeadSnakes = $deadSnakes;
+                $maxDeadSnakesMove = [$move];
+            } elseif ($deadSnakes == $maxDeadSnakes) {
+                $maxDeadSnakesMove[] = $move;
+            }
+        }
+        return $maxDeadSnakesMove;
     }
 
     public function testMoves(array $possibleMoves) {
         $survivable_moves = [];
         foreach ($possibleMoves as $move) {
            $newGameData = $this->gameData->getNextMoveGameData($move);
-           if ($this->canSurvive($newGameData, 10)) {
+           if ($this->canSurvive($newGameData, self::MAX_DEPTH)) {
                $survivable_moves[] = $move;
            }
         }
         return $survivable_moves;
+    }
+
+    public function redrum(GameData $gameData, int $stepsRemaining, int $deadSnakes): int {
+        if ($stepsRemaining <= 0) {
+            return $deadSnakes;
+        }
+        $startingSnakeCount = count($gameData->getSnakes());
+        $tempGameManager = new GameManager($gameData->getData());
+        $possibleMoves = $tempGameManager->getPossibilities();
+        $preferredMoves = $tempGameManager->getPreferred($possibleMoves);
+        if (empty($preferredMoves)) {
+            return $deadSnakes;
+        }
+        if (count($preferredMoves) > 1) {
+            $move = $preferredMoves[array_rand($preferredMoves)];
+        } else {
+            $move = array_values($preferredMoves)[0];
+        }
+        $newGameData = $gameData->getNextMoveGameData($move);
+        $newSnakeCount = count($newGameData->getSnakes());
+        if ($newSnakeCount < $startingSnakeCount) {
+            $deadSnakes = $deadSnakes + ($startingSnakeCount - $newSnakeCount);
+        }
+        return $this->redrum($newGameData, $stepsRemaining - 1, $deadSnakes);
     }
 
     public function canSurvive(GameData $gameData, int $stepsRemaining): bool {

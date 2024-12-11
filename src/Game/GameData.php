@@ -10,6 +10,10 @@ class GameData {
     public function __construct(protected array $data) {
     }
 
+    public function getData(): array {
+        return $this->data;
+    }
+
     public function getBoard(): array {
         return $this->data['board'];
     }
@@ -139,6 +143,7 @@ class GameData {
             $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snake) {
                 return $snake['id'] != $dead_snake;
             });
+            $newGameData['board']['snakes'] = array_values($newGameData['board']['snakes']);
         }
         return new self($newGameData);
     }
