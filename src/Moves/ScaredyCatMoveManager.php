@@ -14,9 +14,9 @@ class ScaredyCatMoveManager extends BaseMoveManager {
             $snakeId = $this->gameData->getYou()['id'];
         }
         $possibleMoves = array_filter($possibleMoves, function($move) use ($snakeId){
-            $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
+            $new_head = $this->gameData->getNextMoveHead($this->gameData->getSnakeHead($snakeId), $move);
 
-            // Exclude moves that cound collide with bigger snakes.
+            // Exclude moves that could collide with bigger snakes.
             foreach ($this->gameData->getSnakes() as $snake) {
                 if ($snake['id'] == $snakeId) {
                     continue;

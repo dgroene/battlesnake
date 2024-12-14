@@ -26,4 +26,8 @@ class BaseMoveManager implements MoveManagerInterface
             return ['x' => $current_head['x'] + 1, 'y' => $current_head['y']];
         }
     }
+
+    public function getManhattanDistance($point1, $point2) {
+        return abs($point1['x'] - $point2['x']) + abs($point1['y'] - $point2['y']);
+    }
 }
