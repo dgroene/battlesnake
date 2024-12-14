@@ -8,6 +8,7 @@ use Battlesnake\Moves\EdgeAvoidingMoveManager;
 use Battlesnake\Moves\FoodMoveManager;
 use Battlesnake\Moves\ImpossibleMoveManager;
 use Battlesnake\Moves\ScaredyCatMoveManager;
+use Battlesnake\Moves\SurvivalMoveManager;
 
 class GameManager {
 
@@ -25,6 +26,16 @@ class GameManager {
         return $possibleMove;
     }
 
+    private function whittleMoves(array $moves_in_order): array {
+        $whittledMoves = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
+        foreach ($moves_in_order as $moves) {
+            if (count(array_intersect($whittledMoves, $moves)) > 0) {
+                $whittledMoves = array_intersect($whittledMoves, $moves);
+            }
+        }
+        return $whittledMoves;
+    }
+
     public function getPreferred(array $possibleMove): array{
         $foodMoveManager = new FoodMoveManager($this->gameData);
         $food_moves = $foodMoveManager->getMoves();
@@ -34,18 +45,18 @@ class GameManager {
         $edgeAvoiding_moves = $edgeAvoidingMoveManager->getMoves();
         $boxingInMoveManager = new BoxingInMoveManager($this->gameData);
         $boxingIn_moves = $boxingInMoveManager->getMoves();
+        $survivalMoveManager = new SurvivalMoveManager($this->gameData);
+        $survival_moves = $survivalMoveManager->getMoves();
         $health = $this->gameData->getYou()['health'];
-        if (count(array_intersect($possibleMove, $scaredyCat_moves)) > 0) {
-            $possibleMove = array_intersect($possibleMove, $scaredyCat_moves);
+
+        if ($health < 20) {
+            $possibleMove = $this->whittleMoves([$possibleMove, $food_moves, $scaredyCat_moves, $survival_moves, $edgeAvoiding_moves, $boxingIn_moves]);
         }
-        if (count(array_intersect($possibleMove, $food_moves)) > 0) {
-            $possibleMove = array_intersect($possibleMove, $food_moves);
+        else if ($this->gameData->getSnakeCount() < 3) {
+            $possibleMove = $this->whittleMoves([$possibleMove, $scaredyCat_moves, $survival_moves, $boxingIn_moves, $edgeAvoiding_moves, $food_moves]);
         }
-        if (count(array_intersect($possibleMove, $edgeAvoiding_moves)) > 0) {
-            $possibleMove = array_intersect($possibleMove, $edgeAvoiding_moves);
-        }
-        if (count(array_intersect($possibleMove, $boxingIn_moves)) > 0) {
-            $possibleMove = array_intersect($possibleMove, $boxingIn_moves);
+        else {
+            $possibleMove = $this->whittleMoves([$possibleMove, $scaredyCat_moves, $survival_moves, $food_moves, $edgeAvoiding_moves, $boxingIn_moves]);
         }
 
         return $possibleMove;
@@ -53,14 +64,11 @@ class GameManager {
 
     public function getMove(): string{
         $possibleMove = $this->getPossibilities();
-        $survivable_moves = $this->testMoves($possibleMove);
-        if (count($survivable_moves) > 0) {
-            $possibleMove = $survivable_moves;
+        if ($this->gameData->getTurn() < 3) {
+            return !empty($possibleMove) ? $possibleMove[array_rand($possibleMove)] : MoveDirections::UP;
         }
+
         $possibleMove = $this->getPreferred($possibleMove);
-        if (count($possibleMove) > 0) {
-            $possibleMove = $this->maximizeDeadSnakes($possibleMove);
-        }
 
         return !empty($possibleMove) ? $possibleMove[array_rand($possibleMove)] : MoveDirections::UP;
     }
@@ -70,6 +78,9 @@ class GameManager {
         $maxDeadSnakesMove = [];
         foreach ($possibleMove as $move) {
             $newGameData = $this->gameData->getNextMoveGameData($move);
+            if ($newGameData === NULL) {
+                continue;
+            }
             $deadSnakes = $this->redrum($newGameData, self::MAX_DEPTH, 0);
             if ($deadSnakes > $maxDeadSnakes) {
                 $maxDeadSnakes = $deadSnakes;
@@ -79,17 +90,6 @@ class GameManager {
             }
         }
         return $maxDeadSnakesMove;
-    }
-
-    public function testMoves(array $possibleMoves) {
-        $survivable_moves = [];
-        foreach ($possibleMoves as $move) {
-           $newGameData = $this->gameData->getNextMoveGameData($move);
-           if ($this->canSurvive($newGameData, self::MAX_DEPTH)) {
-               $survivable_moves[] = $move;
-           }
-        }
-        return $survivable_moves;
     }
 
     public function redrum(GameData $gameData, int $stepsRemaining, int $deadSnakes): int {
@@ -109,39 +109,14 @@ class GameManager {
             $move = array_values($preferredMoves)[0];
         }
         $newGameData = $gameData->getNextMoveGameData($move);
+        if ($newGameData === NULL) {
+            return $deadSnakes;
+        }
         $newSnakeCount = count($newGameData->getSnakes());
         if ($newSnakeCount < $startingSnakeCount) {
             $deadSnakes = $deadSnakes + ($startingSnakeCount - $newSnakeCount);
         }
         return $this->redrum($newGameData, $stepsRemaining - 1, $deadSnakes);
     }
-
-    public function canSurvive(GameData $gameData, int $stepsRemaining): bool {
-        // Base case: If we have no more steps to survive, we've succeeded.
-        if ($stepsRemaining <= 0) {
-            return true;
-        }
-
-        // Instantiate a temporary manager to explore this state
-        $impossibleMoveManager = new ImpossibleMoveManager($gameData);
-        $nextMoves = $impossibleMoveManager->getMoves();
-
-        // If no moves are possible, we can't survive
-        if (empty($nextMoves)) {
-            return false;
-        }
-
-        // Try each possible move
-        foreach($nextMoves as $nextMove) {
-            $nextState = $gameData->getNextMoveGameData($nextMove);
-            if ($this->canSurvive($nextState, $stepsRemaining - 1)) {
-                return true;
-            }
-        }
-
-        // If none of the moves worked out, we cannot survive
-        return false;
-    }
-
 
 }

@@ -3,11 +3,16 @@
 namespace Battlesnake\Game;
 
 use Battlesnake\Enums\MoveDirections;
+use Battlesnake\Moves\BoxingInMoveManager;
 use Battlesnake\Moves\ImpossibleMoveManager;
 
 class GameData {
 
     public function __construct(protected array $data) {
+    }
+
+    public function getTurn(): int {
+        return $this->data['turn'];
     }
 
     public function getData(): array {
@@ -36,10 +41,6 @@ class GameData {
 
     public function getyouLength(): int {
         return count($this->data['you']['body']);
-    }
-
-    public function getTurn(): int {
-        return $this->data['turn'];
     }
 
     public function getBoardHeight(): int {
@@ -95,9 +96,15 @@ class GameData {
         return $this->getSnakeById($id)['body'][count($this->getSnakeBody($id)) - 1];
     }
 
-    public function isCellSafe(int $x, int $y): bool {
+    public function isCellSafe(int $x, int $y, string $snakeId = NULL): bool {
+        if (empty($snakeId)) {
+            $snakeId = $this->getYou()['id'];
+        }
         foreach ($this->getSnakes() as $snake) {
-            foreach ($snake['body'] as $bodyPart) {
+            foreach ($snake['body'] as $index => $bodyPart) {
+                if ($snake['id'] == $snakeId && $index == 0) {
+                    continue;
+                }
                 if ($bodyPart['x'] == $x && $bodyPart['y'] == $y) {
                     return false;
                 }
@@ -106,10 +113,11 @@ class GameData {
         return true;
     }
 
-    public function getNextMoveGameData(string $move): GameData {
+    public function getNextMoveGameData(string $move): GameData | NULL {
         $ImpossibleMoveManager = new ImpossibleMoveManager($this);
         $newGameData = $this->data;
-        $new_head = $ImpossibleMoveManager->getNewHead($this->getYouHead(), $move);
+
+        $new_head = $this->getNextMoveHead($newGameData['you']['head'], $move);
         $new_body = $this->getNextMoveBody($newGameData['you']['body'], $new_head);
         $newGameData['you']['head'] = $new_head;
         $newGameData['you']['body'] = $new_body;
@@ -129,12 +137,32 @@ class GameData {
             }
             $snake = $newGameData['board']['snakes'][$i];
             $moves = $ImpossibleMoveManager->getMoves($snake['id']);
+
             if (empty($moves)) {
                 $dead_snakes[] = $snake['id'];
                 continue;
             }
+            $aggressive_moves = [];
+            foreach ($moves as $move) {
+                if ($move == MoveDirections::UP && $newGameData['you']['head']['y'] > $snake['head']['y']) {
+                    $aggressive_moves[] = $move;
+                }
+                if ($move == MoveDirections::DOWN && $newGameData['you']['head']['y'] < $snake['head']['y']) {
+                    $aggressive_moves[] = $move;
+                }
+                if ($move == MoveDirections::LEFT && $newGameData['you']['head']['x'] < $snake['head']['x']) {
+                    $aggressive_moves[] = $move;
+                }
+                if ($move == MoveDirections::RIGHT && $newGameData['you']['head']['x'] > $snake['head']['x']) {
+                    $aggressive_moves[] = $move;
+                }
+            }
+            if (!empty($aggressive_moves)) {
+                $moves = $aggressive_moves;
+            }
+
             $move = $moves[array_rand($moves)];
-            $new_head = $ImpossibleMoveManager->getNewHead($snake['head'], $move);
+            $new_head = $this->getNextMoveHead($snake['head'], $move);
             $new_body = $this->getNextMoveBody($snake['body'], $new_head);
             $newGameData['board']['snakes'][$i]['head'] = $new_head;
             $newGameData['board']['snakes'][$i]['body'] = $new_body;
@@ -145,13 +173,109 @@ class GameData {
             });
             $newGameData['board']['snakes'] = array_values($newGameData['board']['snakes']);
         }
-        return new self($newGameData);
+        $newGameDataObject = new GameData($newGameData);
+
+        return $newGameDataObject->isCellSafe(...$newGameData['you']['head']) ? $newGameDataObject : NULL;
     }
 
-    protected function getNextMoveBody($body, $newHead) {
+    public function getNextMoveHead($head, $move) {
+        $new_head = $head;
+        if ($move == MoveDirections::UP) {
+            $new_head['y']++;
+        } elseif ($move == MoveDirections::DOWN) {
+            $new_head['y']--;
+        } elseif ($move == MoveDirections::LEFT) {
+            $new_head['x']--;
+        } elseif ($move == MoveDirections::RIGHT) {
+            $new_head['x']++;
+        }
+        return $new_head;
+    }
+
+    public function getNextMoveBody($body, $newHead) {
         $newBody = $body;
         array_unshift($newBody, $newHead);
         array_pop($newBody);
+        foreach($this->getFood() as $food_item) {
+            if ($newHead == $food_item) {
+                $newBody[] = $body[count($body) - 1];
+            }
+        }
         return $newBody;
     }
+
+    public function calculateAccessibleSquares(array $head, string $snakeId): int {
+        $directions = [
+            MoveDirections::UP,
+            MoveDirections::DOWN,
+            MoveDirections::LEFT,
+            MoveDirections::RIGHT
+        ];
+
+        $maxDepth = 7; // Number of moves to look ahead
+        $width = $this->getBoardWidth();   // e.g. 11
+        $height = $this->getBoardHeight(); // e.g. 11
+
+        // Visited array to avoid revisiting cells
+        // Using a boolean array keyed by "x,y"
+        $visited = [];
+        $startKey = "{$head['x']},{$head['y']}";
+        $visited[$startKey] = true;
+
+        // Queue holds entries like [x, y, depth]
+        $queue = [[$head['x'], $head['y'], 0]];
+
+        // Count accessible squares
+        // Decide whether to count the starting square as accessible
+        // Usually you would, since it's where the snake's head currently is.
+        $accessible_squares = 1;
+
+        while (!empty($queue)) {
+            list($x, $y, $depth) = array_shift($queue);
+
+            // If we've reached max depth, do not expand further
+            if ($depth >= $maxDepth) {
+                continue;
+            }
+
+            // Explore neighbors
+            foreach ($directions as $dir) {
+                if ($dir == MoveDirections::UP) {
+                    $nh = ['x' => 0, 'y' => -1];
+                } elseif ($dir == MoveDirections::DOWN) {
+                    $nh = ['x' => 0, 'y' => 1];
+                } elseif ($dir == MoveDirections::LEFT) {
+                    $nh = ['x' => -1, 'y' => 0];
+                } elseif ($dir == MoveDirections::RIGHT) {
+                    $nh = ['x' => 1, 'y' => 0];
+                }
+                $nx = $x + $nh['x'];
+                $ny = $y + $nh['y'];
+                $key = "$nx,$ny";
+
+                // Check board boundaries
+                if ($nx <= 0 || $nx >= $width || $ny <= 0 || $ny >= $height) {
+                    continue;
+                }
+
+                // Check if this cell is safe (not a snake body, not blocked)
+                if (!$this->isCellSafe($nx, $ny, $snakeId)) {
+                    continue;
+                }
+
+                // Check if visited
+                if (isset($visited[$key])) {
+                    continue;
+                }
+
+                // Mark visited and add to the queue
+                $visited[$key] = true;
+                $accessible_squares++;
+                $queue[] = [$nx, $ny, $depth + 1];
+            }
+        }
+
+        return $accessible_squares;
+    }
+
 }

@@ -7,7 +7,7 @@ provider:
     apiGateway:
         usagePlan:
             quota:
-                limit: 100000
+                limit: 300000
                 period: DAY
             throttle:
                 burstLimit: 50
@@ -19,9 +19,12 @@ plugins:
 functions:
     battlesnake:
         handler: index.php
+        memorySize: 2048
         description: 'Battlesnake API'
         runtime: php-83-fpm
         timeout: 28 # in seconds (API Gateway has a timeout of 29 seconds)
+        environment:
+          BREF_LOOP_MAX: 400
         events:
             -  http:
                     path: start
@@ -35,6 +38,11 @@ functions:
             -  http:
                     path: /
                     method: get
+            -  schedule:
+                    rate: rate(1 minute)
+                    input:
+                      warmer: true
+
 
 # Exclude files from deployment
 package:
