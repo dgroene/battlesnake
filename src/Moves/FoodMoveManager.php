@@ -35,24 +35,24 @@ class FoodMoveManager extends BaseMoveManager
                     $min_food = $food_item;
                 }
             }
-//            if (empty($min_food) && !empty($food)) {
-//                // Find a target area where food is clustered.
-//                $xcoordinates = array_column($food, 'x');
-//                $ycoordinates = array_column($food, 'y');
-//                sort($xcoordinates);
-//                sort($ycoordinates);
-//                $count = count($food);
-//                if ($count % 2 == 1) {
-//                    $medianX = $xcoordinates[floor($count / 2)];
-//                    $medianY = $ycoordinates[floor($count / 2)];
-//                }
-//                else {
-//                    $mid = $count / 2;
-//                    $medianX = ($xcoordinates[$mid - 1] + $xcoordinates[$mid]) / 2;
-//                    $medianY = ($ycoordinates[$mid - 1] + $ycoordinates[$mid]) / 2;
-//                }
-//                $min_food = ['x' => $medianX, 'y' => $medianY];
-//            }
+            if (empty($min_food) && !empty($food)) {
+                // Find a target area where food is clustered.
+                $xcoordinates = array_column($food, 'x');
+                $ycoordinates = array_column($food, 'y');
+                sort($xcoordinates);
+                sort($ycoordinates);
+                $count = count($food);
+                if ($count % 2 == 1) {
+                    $medianX = $xcoordinates[floor($count / 2)];
+                    $medianY = $ycoordinates[floor($count / 2)];
+                }
+                else {
+                    $mid = $count / 2;
+                    $medianX = ($xcoordinates[$mid - 1] + $xcoordinates[$mid]) / 2;
+                    $medianY = ($ycoordinates[$mid - 1] + $ycoordinates[$mid]) / 2;
+                }
+                $min_food = ['x' => $medianX, 'y' => $medianY];
+            }
             if (!empty($min_food)) {
                 if ($min_food['x'] >= $new_head['x'] && $move == MoveDirections::RIGHT) {
                     return true;

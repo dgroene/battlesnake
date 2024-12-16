@@ -19,7 +19,6 @@ class SurvivalMoveManager extends BaseMoveManager {
                 continue;
             }
             $depthSurvived = $this->getMaxSurvivalDepth($newGameData, self::MAX_DEPTH);
-            print("Survival depth for $move: $depthSurvived\n");
             $moveSurvivalScores[$move] = $depthSurvived;
         }
         $maxScore = max($moveSurvivalScores);
