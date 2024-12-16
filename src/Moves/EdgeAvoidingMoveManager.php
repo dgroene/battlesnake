@@ -7,12 +7,12 @@ use Battlesnake\Enums\MoveDirections;
 class EdgeAvoidingMoveManager extends BaseMoveManager
 {
 
-    public function getMoves(string|null $snakeId = ''): array
+    public function getMoves(string|null $snakeId = '', $allMoves = self::ALLMOVES): array
     {
         if ($snakeId == NULL) {
             $snakeId = $this->gameData->getYou()['id'];
         }
-        $possibleMoves = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
+        $possibleMoves = $allMoves;
         $edgeAvoidingMoves = [];
         $edgeAvoidingScore = 0;
         $boardWidth = $this->gameData->getBoardWidth();

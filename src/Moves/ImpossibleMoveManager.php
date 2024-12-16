@@ -6,9 +6,9 @@ use Battlesnake\Enums\MoveDirections;
 
 class ImpossibleMoveManager extends BaseMoveManager {
 
-    public function getMoves(string | NULL $snakeId = ''): array
+    public function getMoves(string | NULL $snakeId = '', $allMoves = self::ALLMOVES): array
     {
-        $possibleMoves = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
+        $possibleMoves = $allMoves;
         if ($snakeId == NULL) {
             $snakeId = $this->gameData->getYou()['id'];
         }

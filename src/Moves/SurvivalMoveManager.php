@@ -7,28 +7,35 @@ use Battlesnake\Game\GameData;
 
 class SurvivalMoveManager extends BaseMoveManager {
 
-    const int MAX_DEPTH = 7;
+    const int MAX_DEPTH = 8;
 
-    public function getMoves(string|null $snakeId = ''): array {
-        $possibleMoves = [MoveDirections::DOWN, MoveDirections::UP, MoveDirections::LEFT, MoveDirections::RIGHT];
-        $survivable_moves = [];
+    public function getMoves(string|null $snakeId = '', $allMoves = self::ALLMOVES): array {
+        $possibleMoves = $allMoves;
+        $moveSurvivalScores = [];
         foreach ($possibleMoves as $move) {
             $newGameData = $this->gameData->getNextMoveGameData($move);
             if ($newGameData === NULL) {
+                $moveSurvivalScores[$move] = 0;
                 continue;
             }
-            if ($this->canSurvive($newGameData, self::MAX_DEPTH)) {
-                $survivable_moves[] = $move;
+            $depthSurvived = $this->getMaxSurvivalDepth($newGameData, self::MAX_DEPTH);
+            print("Survival depth for $move: $depthSurvived\n");
+            $moveSurvivalScores[$move] = $depthSurvived;
+        }
+        $maxScore = max($moveSurvivalScores);
+        $bestMoves = [];
+        foreach ($moveSurvivalScores as $move => $score) {
+            if ($score === $maxScore) {
+                $bestMoves[] = $move;
             }
         }
-        return $survivable_moves;
-
+        return $bestMoves;
     }
 
-    public function canSurvive(GameData $gameData, int $stepsRemaining): bool {
+    public function getMaxSurvivalDepth(GameData $gameData, int $stepsRemaining): int {
         // Base case: If we have no more steps to survive, we've succeeded.
         if ($stepsRemaining <= 0) {
-            return true;
+            return self::MAX_DEPTH;
         }
 
         // Instantiate a temporary manager to explore this state
@@ -37,22 +44,23 @@ class SurvivalMoveManager extends BaseMoveManager {
 
         // If no moves are possible, we can't survive
         if (empty($nextMoves)) {
-            return false;
+            return self::MAX_DEPTH - $stepsRemaining;
         }
 
         // Try each possible move
-        $happy_path = [];
+        $bestDepth = self::MAX_DEPTH - $stepsRemaining;
         foreach($nextMoves as $nextMove) {
             $nextState = $gameData->getNextMoveGameData($nextMove);
 
             if ($nextState === NULL) {
-                continue;
+                $depth = self::MAX_DEPTH - $stepsRemaining;
             }
-            if ($this->canSurvive($nextState, $stepsRemaining - 1)) {
-                $happy_path[] = $nextMove;
+            else $depth = $this->getMaxSurvivalDepth($nextState, $stepsRemaining - 1);
+            if ($depth > $bestDepth) {
+                $bestDepth = $depth;
             }
         }
-        return !empty($happy_path);
+        return $bestDepth;
 
     }
 

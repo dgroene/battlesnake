@@ -59,6 +59,13 @@ class GameData {
         return $this->data['board']['snakes'];
     }
 
+    public function getBiggerSnakes(): array {
+        $snakes = $this->getSnakes();
+        return array_filter($snakes, function($snake) {
+            return $snake['length'] > $this->getyouLength() && $snake['id'] != $this->getYou()['id'];
+        });
+    }
+
     public function getSnakeById(string $id): array {
         foreach ($this->getSnakes() as $snake) {
             if ($snake['id'] === $id) {
@@ -78,6 +85,10 @@ class GameData {
 
     public function getSnakeHealth(string $id): int {
         return $this->getSnakeById($id)['health'];
+    }
+
+    public function amIDying(): bool {
+        return $this->getYou()['health'] < 20;
     }
 
     public function getSnakeLength(string $id): int {
@@ -212,7 +223,7 @@ class GameData {
             MoveDirections::RIGHT
         ];
 
-        $maxDepth = 7; // Number of moves to look ahead
+        $maxDepth = 20; // Number of moves to look ahead
         $width = $this->getBoardWidth();   // e.g. 11
         $height = $this->getBoardHeight(); // e.g. 11
 

@@ -8,12 +8,14 @@ use Battlesnake\Moves\MoveManagerInterface;
 
 class BaseMoveManager implements MoveManagerInterface
 {
+    const ALLMOVES = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
+
     public function __construct(protected GameData $gameData) {
     }
 
-    #[\Override] public function getMoves(?string $snakeId = ''): array
+    #[\Override] public function getMoves(?string $snakeId = '', ?array $allMoves = self::ALLMOVES): array
     {
-        return [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
+        return $allMoves;
     }
     public function getNewHead($current_head, $move) {
         if ($move == MoveDirections::UP) {
