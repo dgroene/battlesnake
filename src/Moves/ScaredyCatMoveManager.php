@@ -2,9 +2,6 @@
 
 namespace Battlesnake\Moves;
 
-use Battlesnake\Enums\MoveDirections;
-use Battlesnake\Moves\BaseMoveManager;
-
 class ScaredyCatMoveManager extends BaseMoveManager {
 
     public function getMoves(string | NULL $snakeId = '', $allMoves = self::ALLMOVES): array

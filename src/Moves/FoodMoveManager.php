@@ -17,19 +17,17 @@ class FoodMoveManager extends BaseMoveManager
         $foodMoves = array_filter($foodMoves, function ($move) use ($snakeId) {
             $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
             $food = $this->gameData->getFood();
-           // if (!$this->gameData->amIDying()) {
-                $food = array_filter($food, function ($food_item) {
-                    if ($food_item['x'] == 0 || $food_item['x'] == $this->gameData->getBoardWidth() - 1
-                        || $food_item['y'] == 0 || $food_item['y'] == $this->gameData->getBoardHeight() - 1) {
-                        return false;
-                    }
-                    return true;
-                });
-            //}
+            $food = array_filter($food, function ($food_item) {
+                if ($food_item['x'] == 0 || $food_item['x'] == $this->gameData->getBoardWidth() - 1
+                    || $food_item['y'] == 0 || $food_item['y'] == $this->gameData->getBoardHeight() - 1) {
+                    return false;
+                }
+                return true;
+            });
             $min_food_distance = 1000000;
             $min_food = [];
             foreach ($food as $food_item) {
-                $food_distance = abs($food_item['x'] - $new_head['x']) + abs($food_item['y'] - $new_head['y']);
+                $food_distance = $this->getManhattanDistance($new_head, $food_item);
                 if ($food_distance < $min_food_distance && $this->canIGetThereFirst($food_item)) {
                     $min_food_distance = $food_distance;
                     $min_food = $food_item;
@@ -71,24 +69,23 @@ class FoodMoveManager extends BaseMoveManager
         });
         return $foodMoves;
     }
-    public function canIGetThereFirst(array $food_item, string | NULL $snakeId = NULL) {
+    public function canIGetThereFirst(array $food_item, string | NULL $snakeId = NULL): bool {
         if ($snakeId == NULL) {
             $snakeId = $this->gameData->getYou()['id'];
         }
-        $my_snake = $this->gameData->getSnakeById($snakeId);
-        $closest_snake = $my_snake;
-        $closest_snake_distance = abs($my_snake['head']['x'] - $food_item['x']) + abs($my_snake['head']['y'] - $food_item['y']);
+        $closest_snake = $snakeId;
+        $closest_snake_distance = $this->getManhattanDistance($this->gameData->getSnakeHead($snakeId), $food_item);
         foreach ($this->gameData->getSnakes() as $snake) {
             if ($snake['id'] == $snakeId) {
                 continue;
             }
-            $distance = abs($snake['head']['x'] - $food_item['x']) + abs($snake['head']['y'] - $food_item['y']);
+            $distance = $this->getManhattanDistance($snake['head'], $food_item);
             if ($distance <= $closest_snake_distance) {
                 $closest_snake_distance = $distance;
-                $closest_snake = $snake;
+                $closest_snake = $snake['id'];
             }
         }
-        return $closest_snake['id'] == $snakeId;
+        return $closest_snake == $snakeId;
     }
 
 }

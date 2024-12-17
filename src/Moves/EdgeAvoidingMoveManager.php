@@ -2,8 +2,6 @@
 
 namespace Battlesnake\Moves;
 
-use Battlesnake\Enums\MoveDirections;
-
 class EdgeAvoidingMoveManager extends BaseMoveManager
 {
 

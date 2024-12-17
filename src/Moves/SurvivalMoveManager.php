@@ -2,7 +2,6 @@
 
 namespace Battlesnake\Moves;
 
-use Battlesnake\Enums\MoveDirections;
 use Battlesnake\Game\GameData;
 
 class SurvivalMoveManager extends BaseMoveManager {
