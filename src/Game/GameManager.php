@@ -32,6 +32,8 @@ class GameManager {
                 break;
             }
             $moves = $move_manager->getMoves(NULL, $whittledMoves);
+//            var_dump($moves);
+//            print("\n". $move_manager::class . "\n");
             if (count(array_intersect($whittledMoves, $moves)) > 0) {
                 $whittledMoves = array_intersect($whittledMoves, $moves);
             }

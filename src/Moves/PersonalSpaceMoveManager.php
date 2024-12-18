@@ -22,26 +22,26 @@ class PersonalSpaceMoveManager extends BaseMoveManager
             }
             $new_head = $new_game_data->getSnakeHead($snakeId);
             $spacyTotal = 0;
-            for ($i = $new_head['x']; $i < $boardWidth; $i++) {
-                if ($new_game_data->isCellSafe($i, $new_head['y'], $snakeId)) {
+            for ($i = $new_head['x'] + 1; $i < $boardWidth; $i++) {
+                if (!$new_game_data->isCellSafe($i, $new_head['y'], $snakeId)) {
                     break;
                 }
                 $spacyTotal++;
             }
-            for ($i = $new_head['x']; $i >= 0; $i--) {
-                if ($new_game_data->isCellSafe($i, $new_head['y'], $snakeId)) {
+            for ($i = $new_head['x'] - 1; $i >= 0; $i--) {
+                if (!$new_game_data->isCellSafe($i, $new_head['y'], $snakeId)) {
                     break;
                 }
                 $spacyTotal++;
             }
-            for ($i = $new_head['y']; $i < $boardHeight; $i++) {
-                if ($new_game_data->isCellSafe($new_head['x'], $i, $snakeId)) {
+            for ($i = $new_head['y'] + 1; $i < $boardHeight; $i++) {
+                if (!$new_game_data->isCellSafe($new_head['x'], $i, $snakeId)) {
                     break;
                 }
                 $spacyTotal++;
             }
-            for ($i = $new_head['y']; $i >= 0; $i--) {
-                if ($new_game_data->isCellSafe($new_head['x'], $i, $snakeId)) {
+            for ($i = $new_head['y'] - 1; $i >= 0; $i--) {
+                if (!$new_game_data->isCellSafe($new_head['x'], $i, $snakeId)) {
                     break;
                 }
                 $spacyTotal++;
