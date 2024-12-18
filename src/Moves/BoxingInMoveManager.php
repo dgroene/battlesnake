@@ -5,7 +5,6 @@ namespace Battlesnake\Moves;
 class BoxingInMoveManager extends BaseMoveManager
 {
 
-    private const EDGE_THRESHOLD = 2;
     private const EDGE_MULTIPLIER = 2.0;
     private const DISTANCE_THRESHOLD = 3;
     private const CLOSE_ENEMY_MULTIPLIER = 1.5;
@@ -60,12 +59,6 @@ class BoxingInMoveManager extends BaseMoveManager
             }
         }
         return $boxiestMove;
-    }
-
-    private function isNearEdge($point) {
-        $boardWidth = $this->gameData->getBoardWidth();
-        $boardHeight = $this->gameData->getBoardHeight();
-        return $point['x'] <= self::EDGE_THRESHOLD || $point['x'] >= $boardWidth - self::EDGE_THRESHOLD || $point['y'] <= self::EDGE_THRESHOLD || $point['y'] >= $boardHeight - self::EDGE_THRESHOLD;
     }
 
 }

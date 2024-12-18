@@ -88,7 +88,7 @@ class GameData {
     }
 
     public function amIDying(): bool {
-        return $this->getYou()['health'] < 20;
+        return $this->getYou()['health'] < 50;
     }
 
     public function getSnakeLength(string $id): int {
@@ -111,9 +111,13 @@ class GameData {
         if (empty($snakeId)) {
             $snakeId = $this->getYou()['id'];
         }
+        $mySnakeLength = $this->getSnakeLength($snakeId);
         foreach ($this->getSnakes() as $snake) {
             foreach ($snake['body'] as $index => $bodyPart) {
                 if ($snake['id'] == $snakeId && $index == 0) {
+                    continue;
+                }
+                if ($this->getSnakeLength($snake['id']) < $mySnakeLength && $index == 0) {
                     continue;
                 }
                 if ($bodyPart['x'] == $x && $bodyPart['y'] == $y) {

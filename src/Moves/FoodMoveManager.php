@@ -17,13 +17,15 @@ class FoodMoveManager extends BaseMoveManager
         $foodMoves = array_filter($foodMoves, function ($move) use ($snakeId) {
             $new_head = $this->getNewHead($this->gameData->getSnakeHead($snakeId), $move);
             $food = $this->gameData->getFood();
-            $food = array_filter($food, function ($food_item) {
-                if ($food_item['x'] == 0 || $food_item['x'] == $this->gameData->getBoardWidth() - 1
-                    || $food_item['y'] == 0 || $food_item['y'] == $this->gameData->getBoardHeight() - 1) {
-                    return false;
-                }
-                return true;
-            });
+            if (!$this->gameData->amIDying()) {
+                $food = array_filter($food, function ($food_item) {
+                    if ($food_item['x'] == 0 || $food_item['x'] == $this->gameData->getBoardWidth() - 1
+                        || $food_item['y'] == 0 || $food_item['y'] == $this->gameData->getBoardHeight() - 1) {
+                        return false;
+                    }
+                    return true;
+                });
+            }
             $min_food_distance = 1000000;
             $min_food = [];
             foreach ($food as $food_item) {
