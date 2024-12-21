@@ -9,6 +9,7 @@ use Battlesnake\Moves\FoodMoveManager;
 use Battlesnake\Moves\ImpossibleMoveManager;
 use Battlesnake\Moves\PersonalSpaceMoveManager;
 use Battlesnake\Moves\ScaredyCatMoveManager;
+use Battlesnake\Moves\SmarterSurvivalMoveManager;
 use Battlesnake\Moves\SurvivalMoveManager;
 
 class GameManager {
@@ -53,36 +54,27 @@ class GameManager {
             return $snake['id'] != $this->gameData->getYou()['id'];
         }));
         $bigger_snakes = $this->gameData->getBiggerSnakes();
-        if ($otherSnakeCount > 1 && $health > 50) {
-            $crowded_move_managers = [
-                $scaredyCatMoveManager,
-                $survivalMoveManager,
-                $PersonalSpaceMoveManager,
-                $foodMoveManager,
-                $edgeAvoidingMoveManager,
-                $boxingInMoveManager
-            ];
-            $possibleMove = $this->whittleMoves($possibleMove, $crowded_move_managers);
-        }
-        else {
-            $default_move_managers = [
-                $scaredyCatMoveManager,
-                $survivalMoveManager,
-                $foodMoveManager,
-                $edgeAvoidingMoveManager,
-                $boxingInMoveManager
-            ];
-            $possibleMove = $this->whittleMoves($possibleMove, $default_move_managers);
-        }
+        $default_move_managers = [
+            $scaredyCatMoveManager,
+            $survivalMoveManager,
+            $foodMoveManager,
+            $edgeAvoidingMoveManager,
+            $boxingInMoveManager
+        ];
+        $possibleMove = $this->whittleMoves($possibleMove, $default_move_managers);
+
         return $possibleMove;
     }
 
     public function getMove(): string{
         $possibleMove = $this->getPossibilities();
+        $smarterSurvivalMoveManager = new SmarterSurvivalMoveManager($this->gameData);
+        $possibleMove = $smarterSurvivalMoveManager->getMoves(NULL, $possibleMove);
+//        $possibleMove = $this->getPreferred($possibleMove);
 //        if ($this->gameData->getTurn() < 3) {
 //            return !empty($possibleMove) ? $possibleMove[array_rand($possibleMove)] : MoveDirections::UP;
 //        }
-        $possibleMove = $this->getPreferred($possibleMove);
+//        $possibleMove = $this->getPreferred($possibleMove);
 
         return !empty($possibleMove) ? $possibleMove[array_rand($possibleMove)] : MoveDirections::UP;
     }

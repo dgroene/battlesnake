@@ -3,7 +3,6 @@
 namespace Battlesnake\Game;
 
 use Battlesnake\Enums\MoveDirections;
-use Battlesnake\Moves\BoxingInMoveManager;
 use Battlesnake\Moves\ImpossibleMoveManager;
 
 class GameData {
@@ -131,17 +130,25 @@ class GameData {
     public function getNextMoveGameData(string $move): GameData | NULL {
         $ImpossibleMoveManager = new ImpossibleMoveManager($this);
         $newGameData = $this->data;
+        $newHealth = $newGameData['you']['health'] - 1;
+        foreach ($newGameData['board']['food'] as $food_item) {
+            if ($newGameData['you']['head'] == $food_item) {
+                $newHealth = 100;
+            }
+        }
 
         $new_head = $this->getNextMoveHead($newGameData['you']['head'], $move);
         $new_body = $this->getNextMoveBody($newGameData['you']['body'], $new_head);
         $newGameData['you']['head'] = $new_head;
         $newGameData['you']['body'] = $new_body;
+        $newGameData['you']['health'] = $newHealth;
 
         $my_id = $newGameData['you']['id'];
         for ($i = 0; $i < count($newGameData['board']['snakes']); $i++) {
             if ($newGameData['board']['snakes'][$i]['id'] == $my_id) {
                 $newGameData['board']['snakes'][$i]['head'] = $new_head;
                 $newGameData['board']['snakes'][$i]['body'] = $new_body;
+                $newGameData['board']['snakes'][$i]['health'] = $newHealth;
             }
         }
 
