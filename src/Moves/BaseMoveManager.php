@@ -4,12 +4,9 @@ namespace Battlesnake\Moves;
 
 use Battlesnake\Enums\MoveDirections;
 use Battlesnake\Game\GameData;
-use Battlesnake\Moves\MoveManagerInterface;
 
 class BaseMoveManager implements MoveManagerInterface
 {
-    const EDGE_THRESHOLD = 2;
-
     const ALLMOVES = [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
 
     public function __construct(protected GameData $gameData) {
@@ -36,9 +33,8 @@ class BaseMoveManager implements MoveManagerInterface
         return abs($point1['x'] - $point2['x']) + abs($point1['y'] - $point2['y']);
     }
 
-    public function isNearEdge(array $point): bool {
-        $boardWidth = $this->gameData->getBoardWidth();
-        $boardHeight = $this->gameData->getBoardHeight();
-        return $point['x'] <= self::EDGE_THRESHOLD || $point['x'] >= $boardWidth - self::EDGE_THRESHOLD || $point['y'] <= self::EDGE_THRESHOLD || $point['y'] >= $boardHeight - self::EDGE_THRESHOLD;
+    public function setGameData(GameData $gameData): void {
+        $this->gameData = $gameData;
     }
+
 }

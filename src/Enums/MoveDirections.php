@@ -7,8 +7,4 @@ enum MoveDirections: string {
     public const DOWN = 'down';
     public const LEFT = 'left';
     public const RIGHT = 'right';
-
-    public function getAllMoves(): array {
-        return [MoveDirections::UP, MoveDirections::DOWN, MoveDirections::LEFT, MoveDirections::RIGHT];
-    }
 }

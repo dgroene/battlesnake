@@ -112,29 +112,44 @@ class GameData {
         }
         $mySnakeLength = $this->getSnakeLength($snakeId);
         foreach ($this->getSnakes() as $snake) {
-            foreach ($snake['body'] as $index => $bodyPart) {
-                if ($snake['id'] == $snakeId && $index == 0) {
-                    continue;
-                }
-                if ($this->getSnakeLength($snake['id']) < $mySnakeLength && $index == 0) {
-                    continue;
-                }
-                if ($bodyPart['x'] == $x && $bodyPart['y'] == $y) {
-                    return false;
-                }
+            $collision_body = $snake['body'];
+            if ($snake['id'] == $snakeId) {
+                $collision_body = array_slice($collision_body, 1);
+            }
+            if ($this->getSnakeLength($snake['id']) < $mySnakeLength) {
+                $collision_body = array_slice($collision_body, 1);
+            }
+            if (in_array(['x' => $x, 'y' => $y], $collision_body)) {
+                return false;
             }
         }
         return true;
+    }
+
+    public function amIInCornerOrEdge(): bool {
+        $head = $this->getYou()['head'];
+        $width = $this->getBoardWidth();
+        $height = $this->getBoardHeight();
+        if ($head['x'] == 0 || $head['x'] == $width - 1 || $head['y'] == 0 || $head['y'] == $height - 1) {
+            return true;
+        }
+        $one_quarter_width = floor($width / 4);
+        $one_quarter_height = floor($height / 4);
+        if (($head['x'] < $one_quarter_width && $head['y'] < $one_quarter_height)
+            || ($head['x'] < $one_quarter_width && $head['y'] > $height - $one_quarter_height)
+            || ($head['x'] > $width - $one_quarter_width && $head['y'] < $one_quarter_height)
+            || ($head['x'] > $width - $one_quarter_width && $head['y'] > $height - $one_quarter_height)) {
+            return true;
+        }
+        return false;
     }
 
     public function getNextMoveGameData(string $move): GameData | NULL {
         $ImpossibleMoveManager = new ImpossibleMoveManager($this);
         $newGameData = $this->data;
         $newHealth = $newGameData['you']['health'] - 1;
-        foreach ($newGameData['board']['food'] as $food_item) {
-            if ($newGameData['you']['head'] == $food_item) {
-                $newHealth = 100;
-            }
+        if (in_array($newGameData['you']['head'], $newGameData['board']['food'])) {
+            $newHealth = 100;
         }
 
         $new_head = $this->getNextMoveHead($newGameData['you']['head'], $move);
@@ -189,14 +204,11 @@ class GameData {
             $newGameData['board']['snakes'][$i]['head'] = $new_head;
             $newGameData['board']['snakes'][$i]['body'] = $new_body;
         }
-        foreach ($dead_snakes as $dead_snake) {
-            $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snake) {
-                return $snake['id'] != $dead_snake;
-            });
-            $newGameData['board']['snakes'] = array_values($newGameData['board']['snakes']);
-        }
+        $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snakes) {
+            return !in_array($snake['id'], $dead_snakes);
+        });
+        $newGameData['board']['snakes'] = array_values($newGameData['board']['snakes']);
         $newGameDataObject = new GameData($newGameData);
-
         return $newGameDataObject->isCellSafe(...$newGameData['you']['head']) ? $newGameDataObject : NULL;
     }
 

@@ -22,7 +22,7 @@ class ImpossibleMoveManager extends BaseMoveManager {
             // Exclude moves that collide with own body after removing tail.
             $new_body = array_slice($this->gameData->getSnakeBody($snakeId), 0, -1);
 
-            if (in_array($new_head,$new_body)) {
+            if (in_array($new_head, $new_body)) {
                 return false;
             }
             // Exclude moves that collide with other snakes
