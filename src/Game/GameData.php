@@ -180,7 +180,12 @@ class GameData {
                 continue;
             }
             $aggressive_moves = [];
+            $food_moves = [];
             foreach ($moves as $move) {
+                $newSnakeHead = $this->getNextMoveHead($snake['head'], $move);
+                if (in_array($newSnakeHead, $newGameData['board']['food'])) {
+                    $food_moves[] = $move;
+                };
                 if ($move == MoveDirections::UP && $newGameData['you']['head']['y'] > $snake['head']['y']) {
                     $aggressive_moves[] = $move;
                 }
@@ -194,8 +199,8 @@ class GameData {
                     $aggressive_moves[] = $move;
                 }
             }
-            if (!empty($aggressive_moves)) {
-                $moves = $aggressive_moves;
+            if (!empty(array_merge($food_moves, $aggressive_moves))) {
+                $moves = array_merge($food_moves, $aggressive_moves);
             }
 
             $move = $moves[array_rand($moves)];
@@ -229,6 +234,7 @@ class GameData {
     public function getNextMoveBody($body, $newHead) {
         $newBody = $body;
         array_unshift($newBody, $newHead);
+
         array_pop($newBody);
         foreach($this->getFood() as $food_item) {
             if ($newHead == $food_item) {
