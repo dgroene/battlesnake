@@ -57,7 +57,6 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 if ($tiebreak == $nextMove) {
                     $bestMove = $thisPath;
                 }
-                $bestMove = $thisPath;
             }
         }
         return $bestMove;
@@ -80,30 +79,46 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
         }
         if ($useAccessibleSquares) {
             $currentMyAS = $this->gameData->calculateAccessibleSquares($this->gameData->getYouHead(), $this->gameData->getYou()['id']);
-            $maxEnemyASReduction = 0;
-            $maxEnemyASReductionMoves = [];
+            $maxFreedomMoves = [];
+            $maxFreedom = 0;
             foreach ($lookAheads as $move => $lookAhead) {
-                $lookAheadEnemyASReduction = 0;
-                foreach ($lookAhead->gameData->getSnakes() as $snake) {
-                    if ($snake['id'] == $lookAhead->gameData->getYou()['id']) {
-                        $newMyAS = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
-                        $points[$move] += $newMyAS - $currentMyAS;
-                        continue;
-                    }
-                    $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($snake['id']), $snake['id']);
-                    $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
-                    $lookAheadEnemyASReduction += $currentEnemyAs - $newEnemyAs;
+                $newMyAS = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getYouHead(), $lookAhead->gameData->getYou()['id']);
+                $freedom = $newMyAS - $currentMyAS;
+                if ($freedom > $maxFreedom) {
+                    $maxFreedom = $freedom;
+                    $maxFreedomMoves = [$move];
                 }
-                if ($lookAheadEnemyASReduction > $maxEnemyASReduction) {
-                    $maxEnemyASReduction = $lookAheadEnemyASReduction;
-                    $maxEnemyASReductionMoves = [$move];
-                }
-                else if ($lookAheadEnemyASReduction == $maxEnemyASReduction) {
-                    $maxEnemyASReductionMoves[] = $move;
+                else if ($freedom == $maxFreedom) {
+                    $maxFreedomMoves[] = $move;
                 }
             }
-            foreach ($maxEnemyASReductionMoves as $maxEnemyASReductionMove) {
-                $points[$maxEnemyASReductionMove] += 10;
+            foreach ($maxFreedomMoves as $maxFreedomMove) {
+                $points[$maxFreedomMove] += 10;
+            }
+            if ($this->gameData->getSnakeCount() < 3) {
+                $maxEnemyASReduction = 0;
+                $maxEnemyASReductionMoves = [];
+                foreach ($lookAheads as $move => $lookAhead) {
+                    $lookAheadEnemyASReduction = 0;
+                    foreach ($lookAhead->gameData->getSnakes() as $snake) {
+                        if ($snake['id'] == $lookAhead->gameData->getYou()['id']) {
+                            continue;
+                        }
+                        $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($snake['id']), $snake['id']);
+                        $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
+                        $lookAheadEnemyASReduction += $currentEnemyAs - $newEnemyAs;
+                    }
+                    if ($lookAheadEnemyASReduction > $maxEnemyASReduction) {
+                        $maxEnemyASReduction = $lookAheadEnemyASReduction;
+                        $maxEnemyASReductionMoves = [$move];
+                    }
+                    else if ($lookAheadEnemyASReduction == $maxEnemyASReduction) {
+                        $maxEnemyASReductionMoves[] = $move;
+                    }
+                }
+                foreach ($maxEnemyASReductionMoves as $maxEnemyASReductionMove) {
+                    $points[$maxEnemyASReductionMove] += 10;
+                }
             }
         }
 

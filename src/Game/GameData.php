@@ -199,8 +199,9 @@ class GameData {
                     $aggressive_moves[] = $move;
                 }
             }
-            if (!empty(array_merge($food_moves, $aggressive_moves))) {
-                $moves = array_merge($food_moves, $aggressive_moves);
+            $purpose_driven_moves = $snake['length'] > $newGameData['you']['length'] ? $aggressive_moves : array_merge($food_moves, $aggressive_moves);
+            if (!empty($purpose_driven_moves)) {
+                $moves = $purpose_driven_moves;
             }
 
             $move = $moves[array_rand($moves)];
