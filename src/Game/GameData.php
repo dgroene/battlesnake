@@ -260,15 +260,10 @@ class GameData {
         // Using a boolean array keyed by "x,y"
         $visited = [];
         $startKey = "{$head['x']},{$head['y']}";
-        $visited[$startKey] = true;
+        $visited[$startKey] = 1;
 
         // Queue holds entries like [x, y, depth]
         $queue = [[$head['x'], $head['y'], 0]];
-
-        // Count accessible squares
-        // Decide whether to count the starting square as accessible
-        // Usually you would, since it's where the snake's head currently is.
-        $accessible_squares = 1;
 
         while (!empty($queue)) {
             list($x, $y, $depth) = array_shift($queue);
@@ -305,17 +300,20 @@ class GameData {
 
                 // Check if visited
                 if (isset($visited[$key])) {
+                    $visited[$key]++;
                     continue;
                 }
 
                 // Mark visited and add to the queue
-                $visited[$key] = true;
-                $accessible_squares++;
+                $visited[$key] = 1;
                 $queue[] = [$nx, $ny, $depth + 1];
             }
         }
-
-        return $accessible_squares;
+        $weightedAccessibleSquares = 0;
+        foreach ($visited as $squareValue) {
+            $weightedAccessibleSquares += $squareValue;
+        }
+        return $weightedAccessibleSquares;
     }
 
 }

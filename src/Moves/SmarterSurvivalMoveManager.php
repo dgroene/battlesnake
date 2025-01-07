@@ -79,32 +79,31 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
             $points[$move] = 0;
         }
         if ($useAccessibleSquares) {
-            $minAccessibleSquares = 10;
-            $minAccessibleMoves = [];
+            $currentMyAS = $this->gameData->calculateAccessibleSquares($this->gameData->getYouHead(), $this->gameData->getYou()['id']);
+            $maxEnemyASReduction = 0;
+            $maxEnemyASReductionMoves = [];
             foreach ($lookAheads as $move => $lookAhead) {
-                $myAccessibleSquaresPenalty = 0;
-                $lookAheadTotalAccessibleSquares = 0;
+                $lookAheadEnemyASReduction = 0;
                 foreach ($lookAhead->gameData->getSnakes() as $snake) {
                     if ($snake['id'] == $lookAhead->gameData->getYou()['id']) {
-                        $myAccessibleSquares = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
-                        if ($myAccessibleSquares < 11) {
-                            $myAccessibleSquaresPenalty = 11;
-                        }
+                        $newMyAS = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
+                        $points[$move] += $newMyAS - $currentMyAS;
                         continue;
                     }
-                    $lookAheadTotalAccessibleSquares += $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
+                    $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($snake['id']), $snake['id']);
+                    $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
+                    $lookAheadEnemyASReduction += $currentEnemyAs - $newEnemyAs;
                 }
-                if ($lookAheadTotalAccessibleSquares < $minAccessibleSquares) {
-                    $minAccessibleSquares = $lookAheadTotalAccessibleSquares;
-                    $minAccessibleMoves = [$move];
+                if ($lookAheadEnemyASReduction > $maxEnemyASReduction) {
+                    $maxEnemyASReduction = $lookAheadEnemyASReduction;
+                    $maxEnemyASReductionMoves = [$move];
                 }
-                else if ($lookAheadTotalAccessibleSquares == $minAccessibleSquares) {
-                    $minAccessibleMoves[] = $move;
+                else if ($lookAheadEnemyASReduction == $maxEnemyASReduction) {
+                    $maxEnemyASReductionMoves[] = $move;
                 }
-                $points[$move] -= $myAccessibleSquaresPenalty;
             }
-            foreach ($minAccessibleMoves as $minAccessibleMove) {
-                $points[$minAccessibleMove] += 10;
+            foreach ($maxEnemyASReductionMoves as $maxEnemyASReductionMove) {
+                $points[$maxEnemyASReductionMove] += 10;
             }
         }
 
