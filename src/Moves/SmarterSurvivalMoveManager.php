@@ -82,9 +82,14 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
             $minAccessibleSquares = 10;
             $minAccessibleMoves = [];
             foreach ($lookAheads as $move => $lookAhead) {
+                $myAccessibleSquaresPenalty = 0;
                 $lookAheadTotalAccessibleSquares = 0;
                 foreach ($lookAhead->gameData->getSnakes() as $snake) {
                     if ($snake['id'] == $lookAhead->gameData->getYou()['id']) {
+                        $myAccessibleSquares = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
+                        if ($myAccessibleSquares < 11) {
+                            $myAccessibleSquaresPenalty = 11;
+                        }
                         continue;
                     }
                     $lookAheadTotalAccessibleSquares += $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
@@ -96,6 +101,7 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 else if ($lookAheadTotalAccessibleSquares == $minAccessibleSquares) {
                     $minAccessibleMoves[] = $move;
                 }
+                $points[$move] -= $myAccessibleSquaresPenalty;
             }
             foreach ($minAccessibleMoves as $minAccessibleMove) {
                 $points[$minAccessibleMove] += 10;
