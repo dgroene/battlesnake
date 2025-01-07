@@ -93,7 +93,7 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 }
             }
             foreach ($maxFreedomMoves as $maxFreedomMove) {
-                $points[$maxFreedomMove] += 10;
+                $points[$maxFreedomMove] += 9;
             }
             if ($this->gameData->getSnakeCount() < 3) {
                 $maxEnemyASReduction = 0;
@@ -117,7 +117,7 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                     }
                 }
                 foreach ($maxEnemyASReductionMoves as $maxEnemyASReductionMove) {
-                    $points[$maxEnemyASReductionMove] += 10;
+                    $points[$maxEnemyASReductionMove] += 9;
                 }
             }
         }
@@ -140,16 +140,16 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 $points[$move] += 10;
             }
             if ($primedForKilling) {
-                $points[$move] += 9;
-            }
-            if ($this->gameData->getSnakeCount() - $lookAhead->gameData->getSnakeCount() == $maxDeadSnakes) {
-                $points[$move] += 7;
-            }
-            if ($lookAhead->gameData->getYou()['health'] + $lookAhead->depth == $maxHealth) {
                 $points[$move] += 8;
             }
+            if ($this->gameData->getSnakeCount() - $lookAhead->gameData->getSnakeCount() == $maxDeadSnakes) {
+                $points[$move] += 6;
+            }
+            if ($lookAhead->gameData->getYou()['health'] + $lookAhead->depth == $maxHealth) {
+                $points[$move] += 7;
+            }
             if ($lookAhead->gameData->getYouLength() == $maxSnakeLength) {
-                $points[$move] += 9;
+                $points[$move] += 8;
             }
         }
         // order the final moves by points
