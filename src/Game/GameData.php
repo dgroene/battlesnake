@@ -86,10 +86,6 @@ class GameData {
         return $this->getSnakeById($id)['health'];
     }
 
-    public function amIDying(): bool {
-        return $this->getYou()['health'] < 50;
-    }
-
     public function getSnakeLength(string $id): int {
         return count($this->getSnakeById($id)['body']);
     }
@@ -126,30 +122,15 @@ class GameData {
         return true;
     }
 
-    public function amIInCornerOrEdge(): bool {
-        $head = $this->getYou()['head'];
-        $width = $this->getBoardWidth();
-        $height = $this->getBoardHeight();
-        if ($head['x'] == 0 || $head['x'] == $width - 1 || $head['y'] == 0 || $head['y'] == $height - 1) {
-            return true;
-        }
-        $one_quarter_width = floor($width / 4);
-        $one_quarter_height = floor($height / 4);
-        if (($head['x'] < $one_quarter_width && $head['y'] < $one_quarter_height)
-            || ($head['x'] < $one_quarter_width && $head['y'] > $height - $one_quarter_height)
-            || ($head['x'] > $width - $one_quarter_width && $head['y'] < $one_quarter_height)
-            || ($head['x'] > $width - $one_quarter_width && $head['y'] > $height - $one_quarter_height)) {
-            return true;
-        }
-        return false;
-    }
-
     public function getNextMoveGameData(string $move): GameData | NULL {
         $ImpossibleMoveManager = new ImpossibleMoveManager($this);
         $newGameData = $this->data;
         $newHealth = $newGameData['you']['health'] - 1;
         if (in_array($newGameData['you']['head'], $newGameData['board']['food'])) {
             $newHealth = 100;
+        }
+        if ($newHealth <= 0) {
+            return NULL;
         }
 
         $new_head = $this->getNextMoveHead($newGameData['you']['head'], $move);

@@ -15,6 +15,11 @@ class ImpossibleMoveManager extends BaseMoveManager {
         $possibleMoves = array_filter($possibleMoves, function($move) use ($snakeId){
             $new_head = $this->gameData->getNextMoveHead($this->gameData->getSnakeHead($snakeId), $move);
 
+            // Exclude moves that would bring health to 0.
+            if ($this->gameData->getSnakeHealth($snakeId) == 1 && !in_array($new_head, $this->gameData->getFood())) {
+                return false;
+            }
+
             // Exclude moves that take you off the board
             if ($new_head['x'] < 0 || $new_head['x'] >= $this->gameData->getBoardWidth() || $new_head['y'] < 0 || $new_head['y'] >= $this->gameData->getBoardHeight()) {
                 return false;

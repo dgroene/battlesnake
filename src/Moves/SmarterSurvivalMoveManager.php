@@ -95,19 +95,30 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
             foreach ($maxFreedomMoves as $maxFreedomMove) {
                 $points[$maxFreedomMove] += 9;
             }
-            if ($this->gameData->getSnakeCount() < 3) {
+            $closest_snake = [];
+            $closest_distance = 1000;
+            foreach ($this->gameData->getSnakes() as $snake) {
+                if ($snake['id'] == $this->gameData->getYou()['id']) {
+                    continue;
+                }
+                $distance = $this->getManhattanDistance($this->gameData->getYouHead(), $snake['head']);
+                if ($distance < $closest_distance) {
+                    $closest_distance = $distance;
+                    $closest_snake = $snake;
+                }
+            }
+            if (!empty($closest_snake)) {
                 $maxEnemyASReduction = 0;
                 $maxEnemyASReductionMoves = [];
                 foreach ($lookAheads as $move => $lookAhead) {
-                    $lookAheadEnemyASReduction = 0;
-                    foreach ($lookAhead->gameData->getSnakes() as $snake) {
-                        if ($snake['id'] == $lookAhead->gameData->getYou()['id']) {
-                            continue;
-                        }
-                        $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($snake['id']), $snake['id']);
-                        $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snake['id']), $snake['id']);
-                        $lookAheadEnemyASReduction += $currentEnemyAs - $newEnemyAs;
+                    if (empty($lookAhead->gameData->getSnakeById($closest_snake['id']))) {
+                        $maxEnemyASReduction = 1000;
+                        $maxEnemyASReductionMoves = [$move];
+                        continue;
                     }
+                    $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($closest_snake['id']), $closest_snake['id']);
+                    $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($closest_snake['id']), $closest_snake['id']);
+                    $lookAheadEnemyASReduction = $currentEnemyAs - $newEnemyAs;
                     if ($lookAheadEnemyASReduction > $maxEnemyASReduction) {
                         $maxEnemyASReduction = $lookAheadEnemyASReduction;
                         $maxEnemyASReductionMoves = [$move];
@@ -149,7 +160,7 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 $points[$move] += 7;
             }
             if ($lookAhead->gameData->getYouLength() == $maxSnakeLength) {
-                $points[$move] += 8;
+                $points[$move] += 9;
             }
         }
         // order the final moves by points
