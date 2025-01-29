@@ -28,7 +28,6 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
            }
            foreach($this->getDeepestLookAhead($nextState, self::MAX_DEPTH) as $lookAhead) {
                $score = $this->scoreLookAhead($lookAhead, TRUE);
-               print("Move: $move, Score: $score\n");
                if ($score > $bestScore) {
                    $bestMove = [$move];
                    $bestScore = $score;
@@ -96,38 +95,22 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
         $current_snakeCount = $this->gameData->getSnakeCount();
         if ($this->checkPrimedForKilling($lookAhead)) {
             $score += 12;
-            if ($useAccessibleSquares) {
-                print("Primed for killing+5\n");
-            }
         }
         $score += $depth + 2;
-        if ($useAccessibleSquares) {
-            print("$depth + 2\n");
-        }
         if ($new_length > $current_length) {
             $score += 10;
-            if ($useAccessibleSquares) {
-                print("length +10 \n");
-            }
         }
         if ($new_health > $current_health) {
             $score += 8;
-            if ($useAccessibleSquares) {
-                print("health +8 \n");
-            }
         }
         if ($new_snakeCount < $current_snakeCount) {
             $score += 7;
-            if ($useAccessibleSquares) {
-                print("deadsnakes +7 \n");
-            }
         }
         if ($useAccessibleSquares) {
             $new_accessibleSquares = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getYouHead(), $lookAhead->gameData->getYou()['id']);
             $current_accessibleSquares = $this->gameData->calculateAccessibleSquares($this->gameData->getYouHead(), $this->gameData->getYou()['id']);
             if ($new_accessibleSquares > $current_accessibleSquares) {
                 $score += 7;
-                print("accessible squares +7\n");
             }
             $closest_snake = [];
             $closest_distance = 1000;
@@ -146,12 +129,8 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
                 $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($closest_snake['id']), $closest_snake['id']);
                 if ($newEnemyAs < $currentEnemyAs) {
                     $score += 7;
-                    print ("enemy accessible squares +7\n");
                 }
             }
-        }
-        if ($useAccessibleSquares) {
-            print("-------------------- \n");
         }
         return $score;
     }
