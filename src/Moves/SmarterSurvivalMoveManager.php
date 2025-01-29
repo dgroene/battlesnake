@@ -83,17 +83,23 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
         yield $bestMove;
     }
 
-    public function scoreLookAhead(LookAhead $lookAhead, bool $useAccessibleSquares = FALSE): int {
+    public function scoreLookAhead(LookAhead $lookAhead, bool $useAccessibleSquares = FALSE, $snakeId = ''): int {
+        if ($snakeId == NULL) {
+            $snakeId = $lookAhead->gameData->getYou()['id'];
+        }
         $score = 0;
         $depth = $lookAhead->depth;
-        $new_length = $lookAhead->gameData->getYouLength();
-        $new_health = $lookAhead->gameData->getYou()['health'];
+        $new_length = $lookAhead->gameData->getSnakeLength($snakeId);
+        $new_health = $lookAhead->gameData->getSnakeHealth($snakeId);
         $new_snakeCount = $lookAhead->gameData->getSnakeCount();
 
-        $current_length = $this->gameData->getYouLength();
-        $current_health = $this->gameData->getYou()['health'];
+        $current_length = $this->gameData->getSnakeLength($snakeId);
+        $current_health = $this->gameData->getSnakeHealth($snakeId);
         $current_snakeCount = $this->gameData->getSnakeCount();
-        if ($this->checkPrimedForKilling($lookAhead)) {
+        if ($this->checkPrimedForKilling($lookAhead, TRUE, $snakeId)) {
+            $score += 12;
+        }
+        if (!$this->checkPrimedForKilling($lookAhead, FALSE, $snakeId)) {
             $score += 12;
         }
         $score += $depth + 2;
@@ -107,18 +113,18 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
             $score += 7;
         }
         if ($useAccessibleSquares) {
-            $new_accessibleSquares = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getYouHead(), $lookAhead->gameData->getYou()['id']);
-            $current_accessibleSquares = $this->gameData->calculateAccessibleSquares($this->gameData->getYouHead(), $this->gameData->getYou()['id']);
+            $new_accessibleSquares = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($snakeId), $snakeId);
+            $current_accessibleSquares = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($snakeId), $snakeId);
             if ($new_accessibleSquares > $current_accessibleSquares) {
                 $score += 7;
             }
             $closest_snake = [];
             $closest_distance = 1000;
             foreach ($this->gameData->getSnakes() as $snake) {
-                if ($snake['id'] == $this->gameData->getYou()['id']) {
+                if ($snake['id'] == $snakeId) {
                     continue;
                 }
-                $distance = $this->getManhattanDistance($this->gameData->getYouHead(), $snake['head']);
+                $distance = $this->getManhattanDistance($this->gameData->getSnakeHead($snakeId), $snake['head']);
                 if ($distance < $closest_distance) {
                     $closest_distance = $distance;
                     $closest_snake = $snake;
@@ -135,125 +141,26 @@ class SmarterSurvivalMoveManager extends BaseMoveManager {
         return $score;
     }
 
-    public function getBestMove(array $lookAheadsToTest, bool $useAccessibleSquares = FALSE): string {
-        $lookAheads = array_filter($lookAheadsToTest, function($lookAhead) {
-            return $lookAhead->gameData !== NULL && $lookAhead->depth !== NULL;
-        });
-        if (empty($lookAheads)) {
-            $moves = array_keys($lookAheadsToTest);
-            return $moves[array_rand($moves)];
-        }
-        if (count($lookAheads) == 1) {
-            return array_keys($lookAheads)[0];
-        }
-        $points = [];
-        foreach ($lookAheads as $move => $lookAhead) {
-            $points[$move] = 0;
-        }
-        if ($useAccessibleSquares) {
-            $currentMyAS = $this->gameData->calculateAccessibleSquares($this->gameData->getYouHead(), $this->gameData->getYou()['id']);
-            $maxFreedomMoves = [];
-            $maxFreedom = 0;
-            foreach ($lookAheads as $move => $lookAhead) {
-                $newMyAS = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getYouHead(), $lookAhead->gameData->getYou()['id']);
-                $freedom = $newMyAS - $currentMyAS;
-                if ($freedom > $maxFreedom) {
-                    $maxFreedom = $freedom;
-                    $maxFreedomMoves = [$move];
-                }
-                else if ($freedom == $maxFreedom) {
-                    $maxFreedomMoves[] = $move;
-                }
-            }
-            foreach ($maxFreedomMoves as $maxFreedomMove) {
-                $points[$maxFreedomMove] += 9;
-            }
-            $closest_snake = [];
-            $closest_distance = 1000;
-            foreach ($this->gameData->getSnakes() as $snake) {
-                if ($snake['id'] == $this->gameData->getYou()['id']) {
-                    continue;
-                }
-                $distance = $this->getManhattanDistance($this->gameData->getYouHead(), $snake['head']);
-                if ($distance < $closest_distance) {
-                    $closest_distance = $distance;
-                    $closest_snake = $snake;
-                }
-            }
-            if (!empty($closest_snake)) {
-                $maxEnemyASReduction = 0;
-                $maxEnemyASReductionMoves = [];
-                foreach ($lookAheads as $move => $lookAhead) {
-                    if (empty($lookAhead->gameData->getSnakeById($closest_snake['id']))) {
-                        $maxEnemyASReduction = 1000;
-                        $maxEnemyASReductionMoves = [$move];
-                        continue;
-                    }
-                    $currentEnemyAs = $this->gameData->calculateAccessibleSquares($this->gameData->getSnakeHead($closest_snake['id']), $closest_snake['id']);
-                    $newEnemyAs = $lookAhead->gameData->calculateAccessibleSquares($lookAhead->gameData->getSnakeHead($closest_snake['id']), $closest_snake['id']);
-                    $lookAheadEnemyASReduction = $currentEnemyAs - $newEnemyAs;
-                    if ($lookAheadEnemyASReduction > $maxEnemyASReduction) {
-                        $maxEnemyASReduction = $lookAheadEnemyASReduction;
-                        $maxEnemyASReductionMoves = [$move];
-                    }
-                    else if ($lookAheadEnemyASReduction == $maxEnemyASReduction) {
-                        $maxEnemyASReductionMoves[] = $move;
-                    }
-                }
-                foreach ($maxEnemyASReductionMoves as $maxEnemyASReductionMove) {
-                    $points[$maxEnemyASReductionMove] += 9;
-                }
-            }
-        }
-
-        $maxDepth = max(array_map(function($lookAhead) {
-            return $lookAhead->depth;
-        }, $lookAheads));
-        $maxHealth = max(array_map(function($lookAhead) {
-            return $lookAhead->gameData->getYou()['health'] + $lookAhead->depth;
-        }, $lookAheads));
-        $maxSnakeLength = max(array_map(function($lookAhead) {
-            return $lookAhead->gameData->getYouLength();
-        }, $lookAheads));
-        $maxDeadSnakes = max(array_map(function($lookAhead) {
-            return $this->gameData->getSnakeCount() - $lookAhead->gameData->getSnakeCount();
-        }, $lookAheads));
-        foreach ($lookAheads as $move => $lookAhead) {
-            $primedForKilling = $this->checkPrimedForKilling($lookAhead);
-            if ($lookAhead->depth == $maxDepth) {
-                $points[$move] += 10;
-            }
-            if ($primedForKilling) {
-                $points[$move] += 8;
-            }
-            if ($this->gameData->getSnakeCount() - $lookAhead->gameData->getSnakeCount() == $maxDeadSnakes) {
-                $points[$move] += 6;
-            }
-            if ($lookAhead->gameData->getYou()['health'] + $lookAhead->depth == $maxHealth) {
-                $points[$move] += 7;
-            }
-            if ($lookAhead->gameData->getYouLength() == $maxSnakeLength) {
-                $points[$move] += 9;
-            }
-        }
-        // order the final moves by points
-        arsort($points);
-        return array_keys($points)[0];
-    }
-
-    private function checkPrimedForKilling(LookAhead $lookAhead): bool
+    private function checkPrimedForKilling(LookAhead $lookAhead, bool $offense = TRUE, $snakeId = ''): bool
     {
-        $you = $lookAhead->gameData->getYou();
-        $youHead = $lookAhead->gameData->getYouHead();
-        foreach ($lookAhead->gameData->getSnakes() as $snake) {
-            if ($snake['id'] == $you['id']) {
+        if ($snakeId == NULL) {
+            $snakeId = $lookAhead->gameData->getYou()['id'];
+        }
+        $snake = $lookAhead->gameData->getSnakeById($snakeId);
+        $snakeHead = $lookAhead->gameData->getSnakeHead($snakeId);
+
+        foreach ($lookAhead->gameData->getSnakes() as $enemySnake) {
+            if ($enemySnake['id'] == $snakeId) {
                 continue;
             }
-            if ($snake['length'] >= $you['length']) {
+            if ($enemySnake['length'] >= $snake['length'] && $offense) {
                 continue;
             }
-            $snakeHead = $lookAhead->gameData->getSnakeHead($snake['id']);
-            if ($this->getManhattanDistance($youHead, $snakeHead) == 1) {
+            if ($enemySnake['length'] <= $snake['length'] && !$offense) {
+                continue;
+            }
+            $enemySnakeHead = $lookAhead->gameData->getSnakeHead($enemySnake['id']);
+            if ($this->getManhattanDistance($snakeHead, $enemySnakeHead) == 1) {
                 return TRUE;
             }
         }

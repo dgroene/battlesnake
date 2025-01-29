@@ -4,6 +4,8 @@ namespace Battlesnake\Game;
 
 use Battlesnake\Enums\MoveDirections;
 use Battlesnake\Moves\ImpossibleMoveManager;
+use Battlesnake\Moves\LookAhead;
+use Battlesnake\Moves\SmarterSurvivalMoveManager;
 
 class GameData {
 
@@ -154,48 +156,52 @@ class GameData {
                 continue;
             }
             $snake = $newGameData['board']['snakes'][$i];
-            $moves = $ImpossibleMoveManager->getMoves($snake['id']);
+            $possibleEnemyMoves = $ImpossibleMoveManager->getMoves($snake['id']);
 
-            if (empty($moves)) {
+            if (empty($possibleEnemyMoves)) {
                 $dead_snakes[] = $snake['id'];
                 continue;
             }
-            $aggressive_moves = [];
-            $food_moves = [];
-            foreach ($moves as $move) {
-                $newSnakeHead = $this->getNextMoveHead($snake['head'], $move);
-                if (in_array($newSnakeHead, $newGameData['board']['food'])) {
-                    $food_moves[] = $move;
-                };
-                if ($move == MoveDirections::UP && $newGameData['you']['head']['y'] > $snake['head']['y']) {
-                    $aggressive_moves[] = $move;
+            $bestEnemyMove = count($possibleEnemyMoves) == 1 ? $possibleEnemyMoves : [];
+            $bestEnemyMoveScore = 0;
+
+            if (count($possibleEnemyMoves) > 1) {
+                foreach ($possibleEnemyMoves as $possibleEnemyMove) {
+                    $thisMoveGameData = $newGameData;
+                    $new_head = $this->getNextMoveHead($snake['head'], $possibleEnemyMove);
+                    $new_body = $this->getNextMoveBody($snake['body'], $new_head);
+                    $thisMoveGameData['board']['snakes'][$i]['head'] = $new_head;
+                    $thisMoveGameData['board']['snakes'][$i]['body'] = $new_body;
+                    $thisMoveGameData['board']['snakes'] = array_filter($thisMoveGameData['board']['snakes'], function ($newsnake) use ($dead_snakes) {
+                        return !in_array($newsnake['id'], $dead_snakes);
+                    });
+                    $thisMoveGameData['board']['snakes'] = array_values($thisMoveGameData['board']['snakes']);
+                    $thisMoveGameDataObject = new GameData($thisMoveGameData);
+                    $thisMoveLookahead = new LookAhead($thisMoveGameDataObject, 1);
+                    $smarterSurvivalMoveManager = new SmarterSurvivalMoveManager($this);
+                    $score = $smarterSurvivalMoveManager->scoreLookAhead($thisMoveLookahead, FALSE, $snake['id']);
+                    if ($score > $bestEnemyMoveScore) {
+                        $bestEnemyMove = [$possibleEnemyMove];
+                        $bestEnemyMoveScore = $score;
+                    } elseif ($score == $bestEnemyMoveScore) {
+                        $bestEnemyMove[] = $possibleEnemyMove;
+                    }
                 }
-                if ($move == MoveDirections::DOWN && $newGameData['you']['head']['y'] < $snake['head']['y']) {
-                    $aggressive_moves[] = $move;
-                }
-                if ($move == MoveDirections::LEFT && $newGameData['you']['head']['x'] < $snake['head']['x']) {
-                    $aggressive_moves[] = $move;
-                }
-                if ($move == MoveDirections::RIGHT && $newGameData['you']['head']['x'] > $snake['head']['x']) {
-                    $aggressive_moves[] = $move;
-                }
-            }
-            $purpose_driven_moves = $snake['length'] > $newGameData['you']['length'] ? $aggressive_moves : array_merge($food_moves, $aggressive_moves);
-            if (!empty($purpose_driven_moves)) {
-                $moves = $purpose_driven_moves;
             }
 
-            $move = $moves[array_rand($moves)];
-            $new_head = $this->getNextMoveHead($snake['head'], $move);
+            $bestEnemyMove = $bestEnemyMove[array_rand($bestEnemyMove)];
+            $new_head = $this->getNextMoveHead($snake['head'], $bestEnemyMove);
             $new_body = $this->getNextMoveBody($snake['body'], $new_head);
             $newGameData['board']['snakes'][$i]['head'] = $new_head;
             $newGameData['board']['snakes'][$i]['body'] = $new_body;
         }
-        $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snakes) {
-            return !in_array($snake['id'], $dead_snakes);
+
+        $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function ($newsnake) use ($dead_snakes) {
+            return !in_array($newsnake['id'], $dead_snakes);
         });
         $newGameData['board']['snakes'] = array_values($newGameData['board']['snakes']);
         $newGameDataObject = new GameData($newGameData);
+
         return $newGameDataObject->isCellSafe(...$newGameData['you']['head']) ? $newGameDataObject : NULL;
     }
 
