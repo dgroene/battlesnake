@@ -162,10 +162,10 @@ class GameData {
                 $dead_snakes[] = $snake['id'];
                 continue;
             }
-            $bestEnemyMove = count($possibleEnemyMoves) == 1 ? $possibleEnemyMoves : [];
+            $bestEnemyMove = $possibleEnemyMoves;
             $bestEnemyMoveScore = 0;
-
-            if (count($possibleEnemyMoves) > 1) {
+            $distanceToEnemy = $ImpossibleMoveManager->getManhattanDistance($new_head, $snake['head']);
+            if ($distanceToEnemy < 5 && count($possibleEnemyMoves) > 1) {
                 foreach ($possibleEnemyMoves as $possibleEnemyMove) {
                     $thisMoveGameData = $newGameData;
                     $new_head = $this->getNextMoveHead($snake['head'], $possibleEnemyMove);
