@@ -138,6 +138,7 @@ class GameData {
         $newGameData['you']['head'] = $new_head;
         $newGameData['you']['body'] = $new_body;
         $newGameData['you']['health'] = $newHealth;
+        $newGameData['you']['length'] = count($new_body);
 
         $my_id = $newGameData['you']['id'];
         for ($i = 0; $i < count($newGameData['board']['snakes']); $i++) {
@@ -145,6 +146,7 @@ class GameData {
                 $newGameData['board']['snakes'][$i]['head'] = $new_head;
                 $newGameData['board']['snakes'][$i]['body'] = $new_body;
                 $newGameData['board']['snakes'][$i]['health'] = $newHealth;
+                $newGameData['board']['snakes'][$i]['length'] = count($new_body);
             }
         }
 
@@ -190,6 +192,12 @@ class GameData {
             $new_body = $this->getNextMoveBody($snake['body'], $new_head);
             $newGameData['board']['snakes'][$i]['head'] = $new_head;
             $newGameData['board']['snakes'][$i]['body'] = $new_body;
+            $newHealth = $snake['health'] - 1;
+            if (in_array($new_head, $newGameData['board']['food'])) {
+                $newHealth = 100;
+            }
+            $newGameData['board']['snakes'][$i]['health'] = $newHealth;
+            $newGameData['board']['snakes'][$i]['length'] = count($new_body);
         }
         $newGameData['board']['snakes'] = array_filter($newGameData['board']['snakes'], function($snake) use ($dead_snakes) {
             return !in_array($snake['id'], $dead_snakes);
